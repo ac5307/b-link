@@ -1,0 +1,25 @@
+[package]
+name = "b-link"
+description = "Concurrent ordered map and set collections built on a B-link tree"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ac5307/b-link"
+documentation = "https://docs.rs/b-link"
+readme = "README.md"
+keywords = ["b-tree", "concurrent", "map", "set", "collections"]
+categories = ["concurrency", "data-structures"]
+exclude = [
+  "/.github",
+  "/.gitignore",
+  "/CHANGELOG.md",
+  "/CODE_OF_CONDUCT.md",
+  "/CONTRIBUTING.md",
+  "/Justfile",
+  "/release.toml",
+  "/rustfmt.toml",
+]
+
+[dependencies]
+parking_lot = { version = "0.12", features = ["arc_lock"] }

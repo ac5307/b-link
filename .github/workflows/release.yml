@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release:
+    name: Publish reviewed release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Check out the complete history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the Rust toolchain
+        run: just install-stable
+
+      - name: Publish crate, tag, and GitHub release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+          config: release.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+  pr:
+    needs: release
+    name: Prepare release pull request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out the complete history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the Rust toolchain
+        run: just install-stable
+
+      - name: Create or update the release pull request
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+          config: release.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

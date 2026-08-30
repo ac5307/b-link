@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  quality:
+    name: Format, lint, docs, and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the Rust toolchain
+        run: just install-stable
+
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_name == github.event.repository.default_branch }}
+
+      - name: Check formatting
+        run: just format-check
+
+      - name: Check Justfile formatting
+        run: just justfile-check
+
+      - name: Lint all targets
+        run: just lint
+
+      - name: Build documentation with warnings denied
+        run: just docs
+
+      - name: Run documentation tests
+        run: just doc-test
+
+      - name: Verify the crates.io package
+        run: just package
+
+  test:
+    name: Test stable on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the Rust toolchain
+        run: just install-stable
+
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_name == github.event.repository.default_branch }}
+
+      - name: Run all tests
+        run: just test
+
+  msrv:
+    name: Test minimum Rust 1.85.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the minimum supported Rust version
+        run: just install-msrv
+
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_name == github.event.repository.default_branch }}
+
+      - name: Run all tests on the MSRV
+        run: just test-msrv
+
+  release-mode:
+    name: Test optimized build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install the Rust toolchain
+        run: just install-stable
+
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_name == github.event.repository.default_branch }}
+
+      - name: Run optimized tests
+        run: just test-release
